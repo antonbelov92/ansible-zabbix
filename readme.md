@@ -16,8 +16,8 @@ This role will work on the following operating systems:
 * 'server_include': Inclide dir for servers config
 
 ## zabbix-agent
-* 'agent_server': Adress of zabbix server (!!!must be specified in playbook!!!)
-* 'agent_serveracrive': Adress of zabbix server for active checks (!!!must be specified in playbook!!!)
+* 'agent_server': Adress of zabbix server **(!!!must be specified in playbook!!!)**
+* 'agent_serveracrive': Adress of zabbix server for active checks **(!!!must be specified in playbook!!!)**
 * 'agent_logfilesize': Max size of zabbix-agent log file
 * 'zabbix_url: "http://192.168.21.73/zabbix/"
 * 'zabbix_api_user': Name of zabbix api user
@@ -37,7 +37,7 @@ When you want to automatically create the hosts in the webinterface, you'll need
 You can install this locally with the following command: `pip install zabbix-api`.
 
 ## Example playbook
-
+```
 ---
 - hosts: test-nodes
   sudo: yes
@@ -47,7 +47,7 @@ You can install this locally with the following command: `pip install zabbix-api
     - role: zabbix-agent
       agent_server: 192.168.21.73
       agent_serveractive: 192.168.21.73
- 
+```
 
 
 
