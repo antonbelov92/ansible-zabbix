@@ -1,0 +1,56 @@
+---
+- name: Add repo key
+  apt_key: url=http://repo.zabbix.com/zabbix-official-repo.key state=present
+  tags:
+    - zabbix-server
+
+- name: Add zabbix repo
+  apt_repository: repo='deb http://repo.zabbix.com/zabbix/3.2/{{ ansible_distribution.lower() }} {{ ansible_distribution_release }}  main' state=present update_cache='yes'
+  tags:
+    - zabbix-server
+
+- name: Install zabbix-agent
+  apt: name='zabbix-agent' state=present update_cache=yes
+  tags:
+    - zabbix-agent
+
+- name: Enable zabbix_agent in rc.d
+  command: update-rc.d zabbix-agent enable
+  tags:
+    - zabbix-agent
+
+- name: Default agent_listenip to all when not specified
+  set_fact:
+    agent_ip: "{{ hostvars[inventory_hostname]['ansible_default_ipv4'].address }}"
+  tags:
+  - zabbix-agent
+
+- name: Configure zabbix-agent
+  template: src=zabbix_agentd.conf.j2
+            dest=/etc/zabbix/zabbix_agentd.conf
+            owner=zabbix
+            group=zabbix
+            mode=0644
+  notify: zabbix-agent restart
+  tags:
+    - zabbix-agent
+
+- name: Sure the zabbix-agent service is running
+  service: name=zabbix-agent state=started enabled=yes
+
+- name: Create a new host
+  local_action:
+    module: zabbix_host
+    server_url: "{{ zabbix_url }}"
+    login_user: "{{ zabbix_api_user }}"
+    login_password: "{{ zabbix_api_pass }}"
+    host_name: "{{ inventory_hostname }}"
+    host_groups: "{{ zabbix_host_groups }}"
+    link_templates: "{{ zabbix_link_templates }}"
+    status: "{{ zabbix_host_status }}"
+    state: "{{ zabbix_create_host }}"
+    proxy: "{{ zabbix_proxy }}"
+    interfaces: "{{ agent_interfaces }}"
+  when: zabbix_api_create_hosts
+  tags:
+    - api

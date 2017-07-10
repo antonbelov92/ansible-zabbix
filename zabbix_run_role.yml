@@ -1,0 +1,10 @@
+---
+- hosts: test-nodes
+  sudo: yes
+  roles:
+    - role: mysql
+    - role: zabbix-server
+    - role: zabbix-agent
+      agent_server: 192.168.21.73
+      agent_serveractive: 192.168.21.73
+      agent_listenip: 192.168.21.73

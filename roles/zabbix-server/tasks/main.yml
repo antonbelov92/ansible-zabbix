@@ -1,0 +1,88 @@
+---
+
+- name: Add repo key
+  apt_key: url=http://repo.zabbix.com/zabbix-official-repo.key state=present
+  tags:
+    - zabbix-server
+
+- name: Add zabbix repo
+  apt_repository: repo='deb http://repo.zabbix.com/zabbix/3.2/{{ ansible_distribution.lower() }} {{ ansible_distribution_release }}  main' state=present update_cache='yes'
+  tags:
+    - zabbix-server
+
+- name: Install zabbix-server-mysql
+  apt: name='zabbix-server-mysql' state=present update_cache=yes
+  tags:
+    - zabbix-server
+
+- name: Add zabbix-server config
+  template: src=zabbix_server.conf.j2
+            dest=/etc/zabbix/zabbix_server.conf
+            owner=zabbix
+            group=zabbix
+            mode=0644
+  tags:
+    - zabbix-server
+
+- name: Create include dir zabbix-server
+  file: path={{ server_include }}
+        owner=zabbix
+        group=zabbix
+        state=directory
+        mode=0644
+  tags:
+    - zabbix-server
+
+- name: Import schema
+  shell: "zcat /usr/share/doc/zabbix-server-mysql/create.sql.gz | mysql -u {{ server_dbuser }} --password={{ server_dbpassword }} -D {{ server_dbname }}"
+  tags:
+    - zabbix-server
+
+- name: Restart zabbix-server service
+  service: name=zabbix-server state=restarted enabled=yes
+  tags:
+    - zabbix-server
+
+- name: Install php5
+  apt: name={{ item }} state=installed force=yes
+  with_items:
+    - php5
+    - php5-mysql
+    - libapache2-mod-php5
+  register: php5installed
+  tags:
+    - zabbix-server
+    - php5
+
+
+- name: Install zabbix frontend
+  apt: name='zabbix-frontend-php' state=present
+  tags:
+    - zabbix-server
+    - zabbix-frontend
+
+- name: Add zabbix php conf
+  template: src=zabbix.conf.php.j2
+            dest=/usr/share/zabbix/conf/zabbix.conf.php
+            owner=root
+            group=root
+            mode=0644
+  tags:
+    - zabbix-server
+    - zabbix-frontend
+
+- name: Add apache conf
+  template: src=apache.conf.j2
+            dest=/etc/zabbix/apache.conf
+            owner=root
+            group=root
+            mode=0644
+  tags:
+    - zabbix-server
+    - zabbix-frontend
+
+- name: Restart apache server
+  service: name=apache2 state=restarted enabled=yes
+  tags:
+    - zabbix-server
+    - zabbix-frontend

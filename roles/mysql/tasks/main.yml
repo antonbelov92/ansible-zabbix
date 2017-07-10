@@ -1,0 +1,58 @@
+---
+
+- name: Set MySQL root password before installing
+  debconf: name='mysql-server' question='mysql-server/root_password' value='{{ mysql_root_password }}' vtype='password'
+  tags:
+    - mysql
+
+- name: Confirm MySQL root password before installing
+  debconf: name='mysql-server' question='mysql-server/root_password_again' value='{{ mysql_root_password }}' vtype='password'
+  tags:
+    - mysql
+
+- name: Install Mysql
+  apt: name={{ item }} state=installed force=yes update_cache=yes
+  with_items:
+    - mysql-server
+    - mysql-client
+    - python-mysqldb
+  register: mysqlinstalled
+  tags:
+    - mysql
+
+- name: Copy the my.cnf file
+  template: src=my.cnf.j2 dest=/etc/mysql/my.cnf
+  notify:
+    - mysql restart
+  tags:
+    - mysql
+
+- name: Restart mysql service
+  service: name=mysql state=restarted
+  tags:
+    - mysql
+
+- name: Deletes anonymous MySQL server user for localhost
+  mysql_user: user="" state="absent" login_password="{{ mysql_root_password }}" login_user=root
+  tags:
+    - mysql
+
+- name: Removes the MySQL test database
+  mysql_db: db=test state=absent login_password="{{ mysql_root_password }}" login_user=root
+  tags:
+    - mysql
+
+- name: Create a new database with name 'zabbix'
+  mysql_db: name=zabbixdb state=present encoding=utf8 login_user=root login_password="{{ mysql_root_password }}"
+  tags:
+    - mysql
+
+- name: Add zabbixdb user and allow access to zabbixdb database
+  mysql_user: name=zabbix password={{ mysql_zabbix_password }} priv=zabbixdb.*:ALL state=present login_password="{{ mysql_root_password }}" login_user=root
+  tags:
+    - mysql
+
+- name: Sure the mysql service is running
+  service: name=mysql state=started enabled=yes
+  tags:
+    - mysql
